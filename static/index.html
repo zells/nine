@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>zells</title>
+    <link rel="stylesheet" href="lib/jquery-ui.css">
+    <link rel="stylesheet" href="lib/bulma.css">
+    <link rel="stylesheet" href="lib/bulma-superhero.css">
+    <link rel="stylesheet" href="lib/combobox.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="portal-creator">
+        <div class="select">
+            <select>
+            </select>
+        </div>
+        <button class="button is-link">new</button>
+    </div>
+
+    <script src="/lib/jquery.js"></script>
+    <script src="/lib/jquery-ui.js"></script>
+    <script src="/lib/touch-punch.js"></script>
+    <script src="/lib/combobox.js"></script>
+    <script src="/bundle.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(location.protocol + '//' + window.location.host);
+
+        socket.on('connect', () => console.log('socket::connected'))
+        socket.on('disconnect', () => console.log('socket::disconnected'))
+
+        $(() => {
+            const mesh = new zmesh.WebsocketClientMesh(socket)
+
+            const $creator = $('#portal-creator')
+            const $selection = $creator.find('select')
+
+            Object.keys(zmesh.portals).forEach(portal => $selection.append(`
+                <option value="${portal}">${portal}</option>`))
+
+            $creator.find('button').on('click', () => {
+                const portalType = $selection[0].value
+                const portal = new zmesh.portals[portalType]($('body'), mesh)
+            })
+        })
+    </script>
+</body>
+
+</html>
