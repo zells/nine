@@ -1,49 +1,61 @@
-const express = require('express');
 const socket = require('socket.io')
-const { Node, Mesh } = require('./model')
+const { Signal } = require('./model')
+const { Channel } = require('./mesh')
 
-const startServer = (port, staticDir) => {
-    const app = express();
-
-    app.use(express.static(staticDir));
-
-    return app.listen(port, () =>
-        console.log(`Listening on http://localhost:${port}`)
-    )
-}
-
-class WebsocketServerMesh extends Mesh {
-    constructor(server) {
+class WebsocketServerChannel extends Channel {
+    constructor(server, mesh) {
         super()
+
+        this.mesh = mesh
 
         const io = socket(server);
         io.on('connection', client => {
             console.log('socket::connection', client.id)
-            
-            const link = this.link(new ClientNode(client))
-            client.on('disconnect', () => this.unlink(link))
 
-            client.on('signal', stream => this.receive(stream))
+            client.on('signal', string => this.transmit(new StringSignal(string)))
+            
+            mesh.open(new ClientChannel(client))
         })
     }
 
-    receiveContent(content) {
-        console.log('received', content)
-    }
-}
-
-class ClientNode extends Node {
-    constructor(client) {
-        super()
-        this.client = client
-    }
-
-    receive(stream) {
-        this.client.emit('signal', stream)
+    transmit(signal) {
+        this.mesh.receive(signal)
+        return true
     }
 }
 
 module.exports = {
-    startServer,
-    WebsocketServerMesh
+    WebsocketServerChannel
+}
+
+class ClientChannel extends Channel {
+    constructor(client) {
+        super()
+        this.client = client
+        this.open = true
+
+        client.on('disconnect', () => this.open = false)
+    }
+
+    transmit(signal) {
+        if (!this.open) return false
+
+        this.client.emit('signal', signal.serialized())
+        return true
+    }
+}
+
+class StringSignal extends Signal {
+    constructor(string) {
+        super()
+        this.string = string
+    }
+
+    payload() {
+        return this.string
+    }
+
+    serialized() {
+        return this.payload()
+    }
 }

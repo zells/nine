@@ -1,44 +1,13 @@
-const signals = require('./signals')
+class Zell {
 
-class Node {
-    receive(stream) { }
+    receive(signal) { }
 }
 
-class Mesh extends Node {
-    constructor() {
-        super()
-        this.links = {}
-        this.received = {}
-    }
+class Signal {
 
-    receive(stream) {
-        this.receiveSignal(signals.parse(stream))
-    }
+    payload() { }
 
-    receiveSignal(signal) {
-        if (signal.id in this.received) return
-        this.received[signal.id] = true
-
-        Object.values(this.links).forEach(link => link.receive(signal.toFrame()))
-
-        this.receiveContent(signal.content)
-    }
-
-    receiveContent(content) { }
-
-    send(content) {
-        this.receiveSignal(new signals.DefaultSignal(content))
-    }
-
-    link(node) {
-        const key = Math.max(...Object.keys(this.links), 0) + 1
-        this.links[key] = node
-        return key
-    }
-
-    unlink(key) {
-        delete this.links[key]
-    }
+    serialized() { }
 }
 
-module.exports = { Node, Mesh }
+module.exports = { Zell, Signal }

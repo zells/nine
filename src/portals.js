@@ -1,12 +1,10 @@
-const { Mesh } = require('./model')
+const { MeshZell } = require('./mesh')
 
-class Portal extends Mesh {
-    constructor(container, mesh) {
+class Portal extends MeshZell {
+    constructor(container, channel) {
         super()
-        this.mesh = mesh
-
-        this.linkFromMesh = mesh.link(this)
-        this.linkToMesh = this.link(mesh)
+        this.channel = channel
+        channel.connect(this)
 
         this.element = $(this.render())
         container.append(this.element)
@@ -17,8 +15,7 @@ class Portal extends Mesh {
     }
 
     delete() {
-        this.mesh.unlink(this.linkFromMesh)
-        this.unlink(this.linkToMesh)
+        this.channel.disconnect(this)
         this.element.remove()
     }
 
@@ -39,14 +36,14 @@ class Portal extends Mesh {
             </div>`
     }
 
-    renderBody() { 
+    renderBody() {
         return 'not implemented'
-     }
+    }
 }
 
 class Transceiver extends Portal {
-    constructor(container, mesh) {
-        super(container, mesh)
+    constructor(container, channel) {
+        super(container, channel)
 
         this.log = this.element.find('.log')
 
@@ -77,23 +74,25 @@ class Transceiver extends Portal {
             </div>`
     }
 
-    receiveContent(content) {
+    receive(signal) {
+        signal = super.receive(signal)
+
         this.log.append(`
             <p style="padding-bottom: 0.5em">
                 <small class="has-text-grey-light">${new Date().toISOString()}</small>
-                ${content}
+                ${signal.payload()}
             </p>`)
         this.log.scrollTop(this.log.prop("scrollHeight"))
     }
 }
 
 class Channel extends Portal {
-    constructor(container, mesh) {
-        super(container, mesh)
+    constructor(container, ch) {
+        super(container, ch)
 
         this.log = this.element.find('.log')
 
-        this.channels = {}
+        this.channelNames = {}
         this.$channels = this.element.find('.channels')
         this.updateChannels()
 
@@ -102,7 +101,7 @@ class Channel extends Portal {
 
         const send = () => {
             this.send(JSON.stringify({
-                channel: this.channel[0].value,
+                channel: this.channelName[0].value,
                 sender: sender[0].value,
                 message: message[0].value
             }, null, 1))
@@ -123,18 +122,17 @@ class Channel extends Portal {
     }
 
     updateChannels() {
-        console.log('update channels', Object.keys(this.channels))
-        const current = this.channel ? this.channel[0].value : null
+        const current = this.channelName ? this.channelName[0].value : null
 
         this.$channels.html(`
                 <select>
-                    ${Object.keys(this.channels).map(channel => `
+                    ${Object.keys(this.channelNames).map(channel => `
                         <option ${channel == current ? 'selected' : ''} value="${channel}">${channel}</option>`)}
                 </select>`)
-        this.$channels.find('select').scombobox({empty: !current})
-        this.channel = this.$channels.find('input')
-        this.channel.addClass('input')
-        this.channel.attr('placeholder', 'Channel')
+        this.$channels.find('select').scombobox({ empty: !current })
+        this.channelName = this.$channels.find('input')
+        this.channelName.addClass('input')
+        this.channelName.attr('placeholder', 'Channel')
         this.$channels.find('p').css('color', '#2B3E50')
         this.$channels.find('.scombobox').css('margin', '0')
     }
@@ -158,26 +156,26 @@ class Channel extends Portal {
             </div>`
     }
 
-    receiveContent(content) {
-        console.log('received', content)
+    receive(signal) {
+        signal = super.receive(signal)
 
-        if (content == 'channels?' && this.channel[0] && this.channel[0].value)
+        if (signal.payload() == 'channels?' && this.channelName[0] && this.channelName[0].value)
             return this.send(JSON.stringify({
-                channel: this.channel[0].value
+                channel: this.channelName[0].value
             }))
 
         try {
 
-            const message = JSON.parse(content)
+            const message = JSON.parse(signal.payload())
 
-            if (message.channel && !this.channels[message.channel]) {
-                this.channels[message.channel] = true
+            if (message.channel && !this.channelNames[message.channel]) {
+                this.channelNames[message.channel] = true
                 this.updateChannels()
             }
 
             if (!message.message) return
 
-            if (this.channel[0] && message.channel != this.channel[0].value) return
+            if (this.channelName[0] && message.channel != this.channelName[0].value) return
 
             this.log.append(`
                 <p style="padding-bottom: 0.5em">
