@@ -1,13 +1,19 @@
 class Zell {
 
-    receive(signal) { }
+    receive(signal) {
+        throw new Error('Not implemented')
+    }
 }
 
 class Signal {
 
-    payload() { }
+    payload() {
+        throw new Error('Not implemented')
+    }
 
-    serialized() { }
+    serialized() {
+        throw new Error('Not implemented')
+    }
 }
 
 module.exports = { Zell, Signal }

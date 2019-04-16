@@ -1,31 +1,22 @@
 const socket = require('socket.io')
-const { Signal } = require('./model')
-const { Channel } = require('./mesh')
+const { Channel, StringSignal } = require('./mesh')
 
-class WebsocketServerChannel extends Channel {
+class WebsocketServer extends Channel {
     constructor(server, mesh) {
         super()
-
-        this.mesh = mesh
 
         const io = socket(server);
         io.on('connection', client => {
             console.log('socket::connection', client.id)
 
-            client.on('signal', string => this.transmit(new StringSignal(string)))
-            
             mesh.open(new ClientChannel(client))
+            client.on('signal', string => mesh.receive(new StringSignal(string)))
         })
-    }
-
-    transmit(signal) {
-        this.mesh.receive(signal)
-        return true
     }
 }
 
 module.exports = {
-    WebsocketServerChannel
+    WebsocketServer
 }
 
 class ClientChannel extends Channel {
@@ -42,20 +33,5 @@ class ClientChannel extends Channel {
 
         this.client.emit('signal', signal.serialized())
         return true
-    }
-}
-
-class StringSignal extends Signal {
-    constructor(string) {
-        super()
-        this.string = string
-    }
-
-    payload() {
-        return this.string
-    }
-
-    serialized() {
-        return this.payload()
     }
 }

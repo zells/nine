@@ -29,7 +29,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io(location.protocol + '//' + window.location.host);
-        const mesh = new z.WebsocketChannel(socket)
+
+        const mesh = new z.MeshZell()
+        mesh.open(new z.WebsocketChannel(socket)).connect(mesh)
 
         const $creator = $('#portal-creator')
         const $selection = $creator.find('select')

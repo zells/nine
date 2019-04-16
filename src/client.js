@@ -1,27 +1,25 @@
 const { Zell, Signal } = require('./model')
-const { MeshZell, Channel } = require('./mesh')
+const { MeshZell, Channel, StringSignal } = require('./mesh')
 const { Portal, portals } = require('./portals')
 
 class WebsocketChannel extends Channel {
     constructor(socket) {
         super()
         this.socket = socket
-        this.zells = []
-        
-        socket.on('signal', string => this.transmit(new StringSignal(string)))
+
+        socket.on('connect', () => this.connected = true)
+        socket.on('disconnect', () => this.connected = false)
     }
 
-    connect(mesh) {
-        this.zells.push(mesh)
-        mesh.open(new SocketChannel(this.socket))
-    }
-
-    disconnect(mesh) {
-        delete this.zells[this.zells.indexOf(mesh)]
+    connect(zell) {
+        socket.on('signal', string => zell.receive(new StringSignal(string)))
+        return this
     }
 
     transmit(signal) {
-        this.zells.forEach(zell => zell.receive(signal))
+        if (!this.connected) return true
+
+        socket.emit('signal', signal.serialized())
         return true
     }
 }
@@ -34,36 +32,4 @@ window.z = {
     Portal,
     portals,
     WebsocketChannel
-}
-
-class SocketChannel extends Channel {
-    constructor(socket) {
-        super()
-        this.socket = socket
-
-        socket.on('connect', () => this.connected = true)
-        socket.on('disconnect', () => this.connected = false)
-    }
-
-    transmit(signal) {
-        if (!this.connected) return true
-
-        socket.emit('signal', signal.serialized())
-        return true
-    }
-}
-
-class StringSignal extends Signal {
-    constructor(string) {
-        super()
-        this.string = string
-    }
-
-    payload() {
-        return this.string
-    }
-
-    serialized() {
-        return this.payload()
-    }
 }

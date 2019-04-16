@@ -1,22 +1,27 @@
-const { MeshZell } = require('./mesh')
+const { Zell } = require('./model')
+const { Channel } = require('./mesh')
 
-class Portal extends MeshZell {
-    constructor(container, channel) {
+class Portal extends Zell {
+    constructor(container, mesh) {
         super()
-        this.channel = channel
-        channel.connect(this)
+        this.mesh = mesh
+        this.channel = mesh.open(new PortalChannel(this))
 
-        this.element = $(this.render())
-        container.append(this.element)
-        this.element.css('position', 'absolute')
+        this.$element = $(this.render())
+        this.$element.css('position', 'absolute')
+        this.$element.draggable({ handle: 'header', stack: '.portal' });
+        this.$element.find('.delete').on('click', this.delete.bind(this))
 
-        this.element.draggable({ handle: 'header', stack: '.portal' });
-        this.element.find('.delete').on('click', this.delete.bind(this))
+        container.append(this.$element)
+    }
+
+    send(payload) {
+        this.mesh.send(payload)
     }
 
     delete() {
-        this.channel.disconnect(this)
-        this.element.remove()
+        this.channel.close()
+        this.$element.remove()
     }
 
     render() {
@@ -37,24 +42,43 @@ class Portal extends MeshZell {
     }
 
     renderBody() {
-        return 'not implemented'
+        throw new Error('Not implemented')
+    }
+}
+
+class PortalChannel extends Channel {
+    constructor(portal) {
+        super()
+        this.open = true
+        this.portal = portal
+    }
+
+    transmit(signal) {
+        if (!this.open) return false
+
+        this.portal.receive(signal)
+        return true
+    }
+
+    close() {
+        this.open = false
     }
 }
 
 class Transceiver extends Portal {
-    constructor(container, channel) {
-        super(container, channel)
+    constructor(container, mesh) {
+        super(container, mesh)
 
-        this.log = this.element.find('.log')
+        this.$log = this.$element.find('.log')
 
+        const $input = this.$element.find('input')
         const send = () => {
-            this.send(input[0].value)
-            input.focus().select()
+            this.send($input[0].value)
+            $input.focus().select()
         }
 
-        const input = this.element.find('input')
-        this.element.find('button').on('click', send)
-        input.on('keypress', function (e) {
+        this.$element.find('button').on('click', send)
+        $input.on('keypress', function (e) {
             var code = e.keyCode || e.which;
             if (code == 13) send()
         });
@@ -75,71 +99,72 @@ class Transceiver extends Portal {
     }
 
     receive(signal) {
-        signal = super.receive(signal)
-
-        this.log.append(`
+        this.$log.append(`
             <p style="padding-bottom: 0.5em">
                 <small class="has-text-grey-light">${new Date().toISOString()}</small>
                 ${signal.payload()}
             </p>`)
-        this.log.scrollTop(this.log.prop("scrollHeight"))
+        this.$log.scrollTop(this.$log.prop("scrollHeight"))
     }
 }
 
-class Channel extends Portal {
-    constructor(container, ch) {
-        super(container, ch)
+class ChatRoom extends Portal {
+    constructor(container, mesh) {
+        super(container, mesh)
+        this.rooms = {}
 
-        this.log = this.element.find('.log')
+        this.$log = this.$element.find('.log')
 
-        this.channelNames = {}
-        this.$channels = this.element.find('.channels')
-        this.updateChannels()
+        this.$rooms = this.$element.find('.rooms')
+        this.updateRooms()
 
-        const sender = this.element.find('.sender')
-        const message = this.element.find('.msg')
+        const $sender = this.$element.find('.sender')
+        const $message = this.$element.find('.msg')
 
         const send = () => {
             this.send(JSON.stringify({
-                channel: this.channelName[0].value,
-                sender: sender[0].value,
-                message: message[0].value
+                room: this.$room[0].value,
+                sender: $sender[0].value,
+                message: $message[0].value
             }, null, 1))
-            message.focus().select()
+            $message.focus().select()
         }
 
-        this.element.find('button').on('click', send)
-        message.on('keypress', function (e) {
+        this.$element.find('button').on('click', send)
+        $message.on('keypress', function (e) {
             var code = e.keyCode || e.which;
             if (code == 13) send()
         });
 
-        this.element.find('.combobox').scombobox({
+        this.$element.find('.combobox').scombobox({
             empty: true
         })
 
-        this.send('channels?')
+        this.send('rooms?')
     }
 
-    updateChannels() {
-        const current = this.channelName ? this.channelName[0].value : null
+    updateRooms() {
+        const current = this.$room ? this.$room[0].value : null
 
-        this.$channels.html(`
+        this.$rooms.html(`
                 <select>
-                    ${Object.keys(this.channelNames).map(channel => `
-                        <option ${channel == current ? 'selected' : ''} value="${channel}">${channel}</option>`)}
+                    ${Object.keys(this.rooms).map(room => `
+                        <option ${room == current ? 'selected' : ''} value="${room}">${room}</option>`)}
                 </select>`)
-        this.$channels.find('select').scombobox({ empty: !current })
-        this.channelName = this.$channels.find('input')
-        this.channelName.addClass('input')
-        this.channelName.attr('placeholder', 'Channel')
-        this.$channels.find('p').css('color', '#2B3E50')
-        this.$channels.find('.scombobox').css('margin', '0')
+
+        this.$rooms.find('select').scombobox({ empty: !current })
+
+        this.$rooms.find('p').css('color', '#2B3E50')
+        this.$rooms.find('.scombobox').css('margin', '0')
+
+        this.$room = this.$rooms.find('input')
+        this.$room.addClass('input')
+        this.$room.attr('placeholder', 'Room')
     }
 
     renderBody() {
         return `
-            <div class="channels" style="position: relative">
+            <div class="rooms" style="position: relative">
             </div>
 
             <input class="sender input" type="text" placeholder="Sender">
@@ -157,32 +182,30 @@ class Channel extends Portal {
     }
 
     receive(signal) {
-        signal = super.receive(signal)
-
-        if (signal.payload() == 'channels?' && this.channelName[0] && this.channelName[0].value)
+        if (signal.payload() == 'rooms?' && this.$room[0] && this.$room[0].value)
             return this.send(JSON.stringify({
-                channel: this.channelName[0].value
+                room: this.$room[0].value
             }))
 
         try {
 
             const message = JSON.parse(signal.payload())
 
-            if (message.channel && !this.channelNames[message.channel]) {
-                this.channelNames[message.channel] = true
-                this.updateChannels()
+            if (message.room && !this.rooms[message.room]) {
+                this.rooms[message.room] = true
+                this.updateRooms()
             }
 
             if (!message.message) return
 
-            if (this.channelName[0] && message.channel != this.channelName[0].value) return
+            if (this.$room[0] && message.room != this.$room[0].value) return
 
-            this.log.append(`
+            this.$log.append(`
                 <p style="padding-bottom: 0.5em">
                     <small class="has-text-grey-light" title="${new Date().toISOString()}">${message.sender}</small>
                     ${message.message}
                 </p>`)
-            this.log.scrollTop(this.log.prop("scrollHeight"))
+            this.$log.scrollTop(this.$log.prop("scrollHeight"))
 
         } catch {
         }
@@ -193,6 +216,6 @@ module.exports = {
     Portal,
     portals: {
         Transceiver,
-        Channel
+        ChatRoom
     }
 }

@@ -21,31 +21,43 @@ class MeshZell extends Zell {
 
         this.received[signal.id] = true
 
-        this.emit(signal)
+        this.channels.forEach((channel, i) =>
+            channel.transmit(signal) || delete this.channels[i])
 
         return signal
     }
 
     send(payload) {
-        this.emit(JsonMeshSignal.with(payload))
-    }
-
-    emit(signal) {
-        this.channels.forEach((channel, i) =>
-            channel.transmit(signal) || delete this.channels[i])
+        this.receive(new StringSignal(JsonMeshSignal.with(payload).serialized()))
     }
 }
 
 class Channel {
 
     transmit(signal) {
-        return false
+        throw new Error('Not implemented')
+    }
+}
+
+class StringSignal extends Signal {
+    constructor(string) {
+        super()
+        this.string = string
+    }
+
+    payload() {
+        return this.string
+    }
+
+    serialized() {
+        return this.payload()
     }
 }
 
 module.exports = {
     MeshZell,
-    Channel
+    Channel,
+    StringSignal
 }
 
 class NullSignal extends Signal {
