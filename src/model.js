@@ -11,12 +11,8 @@ class Zell {
         if (this.emitter) this.emitter(stream)
     }
 
-    dieWith(killer) {
-        this.killer = killer
-    }
-
     die() {
-        if (this.killer) this.killer()
+        this.dead = true
     }
 }
 
@@ -47,11 +43,11 @@ class Dish {
     put(zell) {
         this.zells.push(zell)
         zell.emitWith(stream => this.emitted(stream, zell))
-        zell.dieWith(() => this.remove(zell))
         return zell
     }
 
     remove(zell) {
+        zell.emitWith(() => null)
         this.zells = this.zells.filter(z => z != zell)
     }
 
@@ -60,15 +56,18 @@ class Dish {
     }
 
     dispense(stream, origin) {
-        this.zells.forEach(zell => {
-            if (zell == origin) return
-
+        const consumeSafely = zell => {
             try {
                 zell.consume(stream)
             } catch (err) {
                 console.error(err)
             }
-        })
+        }
+
+        this.zells = this.zells.filter(zell => !zell.dead)
+        this.zells
+            .filter(zell => zell != origin)
+            .forEach(consumeSafely)
     }
 }
 
