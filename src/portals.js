@@ -54,10 +54,15 @@ class PortalChannel extends Channel {
     }
 
     transmit(signal) {
-        if (!this.open) return false
+        try {
+            this.portal.receive(signal)
+        } catch (err) {
+            console.error(err)
+        }
+    }
 
-        this.portal.receive(signal)
-        return true
+    isOpen() {
+        return this.open
     }
 
     close() {

@@ -1,10 +1,8 @@
 const socket = require('socket.io')
 const { Channel, StringSignal } = require('./mesh')
 
-class WebsocketServer extends Channel {
+class WebsocketServer {
     constructor(server, mesh) {
-        super()
-
         const io = socket(server);
         io.on('connection', client => {
             console.log('socket::connection', client.id)
@@ -29,9 +27,10 @@ class ClientChannel extends Channel {
     }
 
     transmit(signal) {
-        if (!this.open) return false
-
         this.client.emit('signal', signal.serialized())
-        return true
+    }
+
+    isOpen() {
+        return this.open
     }
 }

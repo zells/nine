@@ -13,4 +13,12 @@ app.use(express.static(staticDir));
 const server = app.listen(port, () =>
     console.log(`Listening on http://localhost:${port}`))
 
-new WebsocketServer(server, new MeshZell())
+const mesh = new class extends MeshZell {
+    receive(signal) {
+        const received = super.receive(signal)
+        if (received.payload())
+            console.log('mesh::receive', signal.payload())
+    }
+}
+
+new WebsocketServer(server, mesh)

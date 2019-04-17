@@ -13,22 +13,39 @@ class MeshZell extends Zell {
         return channel
     }
 
+    send(payload) {
+        try {
+            this.receive(new StringSignal(JsonMeshSignal.with(payload).serialized()))
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
     receive(signal) {
-        signal = JsonMeshSignal.from(signal)
+        return this._receiveMesh(this._parseMesh(signal))
+    }
 
-        if (signal.id in this.received)
-            return new NullSignal()
+    _parseMesh(signal) {
+        return JsonMeshSignal.from(signal)
+    }
 
-        this.received[signal.id] = true
-
-        this.channels.forEach((channel, i) =>
-            channel.transmit(signal) || delete this.channels[i])
-
+    _receiveMesh(signal) {
+        if (this._alreadyReceived(signal)) return new NullSignal()
+        this._emit(signal)
         return signal
     }
 
-    send(payload) {
-        this.receive(new StringSignal(JsonMeshSignal.with(payload).serialized()))
+    _alreadyReceived(signal) {
+        if (signal.id in this.received) return true
+        this.received[signal.id] = Date.now()
+        return false
+    }
+
+    _emit(signal) {
+        this.channels.forEach((channel, i) =>
+            channel.isOpen()
+                ? channel.transmit(signal)
+                : delete this.channels[i])
     }
 }
 
@@ -36,6 +53,10 @@ class Channel {
 
     transmit(signal) {
         throw new Error('Not implemented')
+    }
+
+    isOpen() {
+        return false
     }
 }
 
@@ -66,12 +87,19 @@ class NullSignal extends Signal {
     }
 }
 
-class JsonMeshSignal extends Signal {
+class MeshSignal extends Signal {
     constructor(id, payload) {
         super()
         this.id = id
         this._payload = payload
     }
+
+    payload() {
+        return this._payload
+    }
+}
+
+class JsonMeshSignal extends MeshSignal {
 
     static with(payload) {
         return new JsonMeshSignal(uuid(), payload)
@@ -80,10 +108,6 @@ class JsonMeshSignal extends Signal {
     static from(signal) {
         const parsed = JSON.parse(signal.payload())
         return new JsonMeshSignal(parsed.id, parsed.payload)
-    }
-
-    payload() {
-        return this._payload
     }
 
     serialized() {
