@@ -1,36 +1,51 @@
-const socket = require('socket.io')
-const { Channel, StringSignal } = require('./mesh')
+const uuid = require('uuid/v4')
+const { MeshDish, Channel, Packet } = require('./mesh')
 
-class WebsocketServer {
-    constructor(server, mesh) {
-        const io = socket(server);
-        io.on('connection', client => {
-            console.log('socket::connection', client.id)
+class WebsocketServerDish extends MeshDish {
+    constructor(socket) {
+        super()
 
-            mesh.open(new ClientChannel(client))
-            client.on('signal', string => mesh.receive(new StringSignal(string)))
-        })
+        socket.on('connection', client => this.open(new WebsocketChannel(client, this)))
+    }
+
+    pack(stream) {
+        return new Packet(uuid(), stream)
     }
 }
 
-module.exports = {
-    WebsocketServer
-}
-
-class ClientChannel extends Channel {
-    constructor(client) {
+class WebsocketChannel extends Channel {
+    constructor(socket, dish) {
         super()
-        this.client = client
+
+        this.socket = socket
         this.open = true
 
-        client.on('disconnect', () => this.open = false)
+        socket.on('signal', data => dish.receive(this._inflate(data)))
+        socket.on('disconnect', () => this.open = false)
     }
 
-    transmit(signal) {
-        this.client.emit('signal', signal.serialized())
+    transmit(packet) {
+        this.socket.emit('signal', this._deflate(packet))
     }
 
     isOpen() {
         return this.open
     }
+
+    _inflate(data) {
+        const parsed = JSON.parse(data)
+        return new Packet(parsed.id, parsed.content)
+    }
+
+    _deflate(packet) {
+        return JSON.stringify({
+            id: packet.id,
+            content: packet.content.toString()
+        })
+    }
+}
+
+module.exports = {
+    WebsocketServerDish,
+    WebsocketChannel
 }

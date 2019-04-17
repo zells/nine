@@ -1,26 +1,23 @@
 const { Zell } = require('./model')
-const { Channel } = require('./mesh')
 
 class Portal extends Zell {
-    constructor(container, mesh) {
-        super()
-        this.mesh = mesh
-        this.channel = mesh.open(new PortalChannel(this))
+    constructor(container) {
+        super(container)
 
         this.$element = $(this.render())
         this.$element.css('position', 'absolute')
         this.$element.draggable({ handle: 'header', stack: '.portal' });
-        this.$element.find('.delete').on('click', this.delete.bind(this))
+        this.$element.find('.delete').on('click', this.die.bind(this))
 
         container.append(this.$element)
     }
 
-    send(payload) {
-        this.mesh.send(payload)
+    element() {
+        return this.$element
     }
 
-    delete() {
-        this.channel.close()
+    die() {
+        super.die()
         this.$element.remove()
     }
 
@@ -46,39 +43,37 @@ class Portal extends Zell {
     }
 }
 
-class PortalChannel extends Channel {
-    constructor(portal) {
-        super()
-        this.open = true
-        this.portal = portal
+class Receiver extends Portal {
+    constructor(container) {
+        super(container)
+
+        this.$log = this.$element.find('.log')
     }
 
-    transmit(signal) {
-        try {
-            this.portal.receive(signal)
-        } catch (err) {
-            console.error(err)
-        }
+    renderBody() {
+        return `
+            <div class="log" style="height: 200px; overflow: auto"></div>`
     }
 
-    isOpen() {
-        return this.open
-    }
+    consume(stream) {
+        super.consume(stream)
 
-    close() {
-        this.open = false
+        this.$log.append(`
+            <p style="padding-bottom: 0.5em">
+                <small class="has-text-grey-light">${new Date().toISOString()}</small>
+                ${stream.toString()}
+            </p>`)
+        this.$log.scrollTop(this.$log.prop("scrollHeight"))
     }
 }
 
-class Transceiver extends Portal {
-    constructor(container, mesh) {
-        super(container, mesh)
-
-        this.$log = this.$element.find('.log')
+class Sender extends Portal {
+    constructor(container) {
+        super(container)
 
         const $input = this.$element.find('input')
         const send = () => {
-            this.send($input[0].value)
+            this.emit($input[0].value)
             $input.focus().select()
         }
 
@@ -91,8 +86,6 @@ class Transceiver extends Portal {
 
     renderBody() {
         return `
-            <div class="log" style="height: 200px; overflow: auto"></div>
-
             <div class="columns is-gapless">
                 <div class="column">
                     <input class="input" type="text" placeholder="Content">
@@ -102,20 +95,12 @@ class Transceiver extends Portal {
                 </div>
             </div>`
     }
-
-    receive(signal) {
-        this.$log.append(`
-            <p style="padding-bottom: 0.5em">
-                <small class="has-text-grey-light">${new Date().toISOString()}</small>
-                ${signal.payload()}
-            </p>`)
-        this.$log.scrollTop(this.$log.prop("scrollHeight"))
-    }
 }
 
 class ChatRoom extends Portal {
-    constructor(container, mesh) {
-        super(container, mesh)
+    constructor(container) {
+        super(container)
+
         this.rooms = {}
 
         this.$log = this.$element.find('.log')
@@ -127,7 +112,14 @@ class ChatRoom extends Portal {
         const $message = this.$element.find('.msg')
 
         const send = () => {
-            this.send(JSON.stringify({
+            this.$log.append(`
+                <p style="padding-bottom: 0.5em">
+                    <small class="has-text-grey" title="${new Date().toISOString()}">${$sender[0].value}</small>
+                    <span class="has-text-grey-light">${$message[0].value}</span>
+                </p>`)
+            this.$log.scrollTop(this.$log.prop("scrollHeight"))
+
+            this.emit(JSON.stringify({
                 room: this.$room[0].value,
                 sender: $sender[0].value,
                 message: $message[0].value
@@ -144,8 +136,11 @@ class ChatRoom extends Portal {
         this.$element.find('.combobox').scombobox({
             empty: true
         })
+    }
 
-        this.send('rooms?')
+    emitWith(emitter) {
+        super.emitWith(emitter)
+        this.emit('rooms?')
     }
 
     updateRooms() {
@@ -169,16 +164,15 @@ class ChatRoom extends Portal {
 
     renderBody() {
         return `
-            <div class="rooms" style="position: relative">
-            </div>
+            <div class="rooms" style="position: relative"></div>
 
-            <input class="sender input" type="text" placeholder="Sender">
+            <input class="sender input" type="text" placeholder="Your name">
 
             <div class="log" style="height: 200px; overflow: auto"></div>
 
             <div class="columns is-gapless">
                 <div class="column">
-                    <input class="msg message input" type="text" placeholder="Content">
+                    <input class="msg message input" type="text" placeholder="Your message">
                 </div>
                 <div class="column is-3">
                     <button class="button is-link" style="width: 100%">send</button>
@@ -186,29 +180,31 @@ class ChatRoom extends Portal {
             </div>`
     }
 
-    receive(signal) {
-        if (signal.payload() == 'rooms?' && this.$room[0] && this.$room[0].value)
-            return this.send(JSON.stringify({
+    consume(stream) {
+        super.consume(stream)
+
+        if (stream.toString() == 'rooms?' && this.$room[0] && this.$room[0].value)
+            return this.emit(JSON.stringify({
                 room: this.$room[0].value
             }))
 
         try {
 
-            const message = JSON.parse(signal.payload())
+            const said = JSON.parse(stream.toString())
 
-            if (message.room && !this.rooms[message.room]) {
-                this.rooms[message.room] = true
+            if (said.room && !this.rooms[said.room]) {
+                this.rooms[said.room] = true
                 this.updateRooms()
             }
 
-            if (!message.message) return
+            if (!said.message) return
 
-            if (this.$room[0] && message.room != this.$room[0].value) return
+            if (this.$room[0] && said.room != this.$room[0].value) return
 
             this.$log.append(`
                 <p style="padding-bottom: 0.5em">
-                    <small class="has-text-grey-light" title="${new Date().toISOString()}">${message.sender}</small>
-                    ${message.message}
+                    <small class="has-text-grey-light" title="${new Date().toISOString()}">${said.sender}</small>
+                    ${said.message}
                 </p>`)
             this.$log.scrollTop(this.$log.prop("scrollHeight"))
 
@@ -220,7 +216,8 @@ class ChatRoom extends Portal {
 module.exports = {
     Portal,
     portals: {
-        Transceiver,
+        Receiver,
+        Sender,
         ChatRoom
     }
 }

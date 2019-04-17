@@ -30,8 +30,7 @@
     <script>
         const socket = io(location.protocol + '//' + window.location.host);
 
-        const mesh = new z.MeshZell()
-        new z.WebsocketClient(socket, mesh)
+        const dish = new z.WebsocketClientDish(socket)
 
         const $creator = $('#portal-creator')
         const $selection = $creator.find('select')
@@ -40,9 +39,12 @@
             $selection.append(`<option value="${portal}">${portal}</option>`))
 
         $creator.find('button').on('click', () => {
-            const portalType = $selection[0].value
-            new z.portals[portalType]($('body'), mesh)
+            createPortal($selection[0].value)
         })
+
+        function createPortal(type) {
+            dish.put(new z.portals[type]($('body'))).element()
+        }
     </script>
 </body>
 

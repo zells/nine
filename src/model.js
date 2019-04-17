@@ -1,19 +1,79 @@
 class Zell {
 
-    receive(signal) {
-        throw new Error('Not implemented')
+    consume(stream) {
+    }
+
+    emitWith(emitter) {
+        this.emitter = emitter
+    }
+
+    emit(stream) {
+        if (this.emitter) this.emitter(stream)
+    }
+
+    dieWith(killer) {
+        this.killer = killer
+    }
+
+    die() {
+        if (this.killer) this.killer()
     }
 }
 
-class Signal {
+class Stream {
 
-    payload() {
-        throw new Error('Not implemented')
+    all() {
+        return new Buffer(0)
     }
 
-    serialized() {
-        throw new Error('Not implemented')
+    toString() {
+        return this.all().toString()
+    }
+
+    next() {
+        return 0
+    }
+
+    hasNext() {
+        return false
     }
 }
 
-module.exports = { Zell, Signal }
+class Dish {
+    constructor() {
+        this.zells = []
+    }
+
+    put(zell) {
+        this.zells.push(zell)
+        zell.emitWith(stream => this.emitted(stream, zell))
+        zell.dieWith(() => this.remove(zell))
+        return zell
+    }
+
+    remove(zell) {
+        this.zells = this.zells.filter(z => z != zell)
+    }
+
+    emitted(stream, zell) {
+        this.dispense(stream, zell)
+    }
+
+    dispense(stream, origin) {
+        this.zells.forEach(zell => {
+            if (zell == origin) return
+
+            try {
+                zell.consume(stream)
+            } catch (err) {
+                console.error(err)
+            }
+        })
+    }
+}
+
+module.exports = {
+    Zell,
+    Stream,
+    Dish
+}

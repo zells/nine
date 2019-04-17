@@ -1,9 +1,9 @@
-const uuid = require('uuid/v4')
-const { Zell, Signal } = require('./model')
+const { Dish } = require('./model')
 
-class MeshZell extends Zell {
+class MeshDish extends Dish {
     constructor() {
         super()
+
         this.channels = []
         this.received = {}
     }
@@ -13,104 +13,56 @@ class MeshZell extends Zell {
         return channel
     }
 
-    send(payload) {
-        try {
-            this.receive(new StringSignal(JsonMeshSignal.with(payload).serialized()))
-        } catch (err) {
-            console.error(err)
-        }
+    emitted(stream, zell) {
+        super.emitted(stream, zell)
+        this.send(this.pack(stream))
     }
 
-    receive(signal) {
-        return this._receiveMesh(this._parseMesh(signal))
+    pack(stream) {
+        return new Packet(null, stream)
     }
 
-    _parseMesh(signal) {
-        return JsonMeshSignal.from(signal)
+    send(packet) {
+        this.received[packet.id] = Date.now()
+        this.channels = this.channels.filter(channel => channel.isOpen())
+        this.channels.forEach(channel => channel.transmit(packet))
     }
 
-    _receiveMesh(signal) {
-        if (this._alreadyReceived(signal)) return new NullSignal()
-        this._emit(signal)
-        return signal
+    receive(packet) {
+        if (this._alreadyReceived(packet))
+            return
+
+        this.dispense(packet.content)
+        this.send(packet)
     }
 
-    _alreadyReceived(signal) {
-        if (signal.id in this.received) return true
-        this.received[signal.id] = Date.now()
+    _alreadyReceived(packet) {
+        if (packet.id in this.received)
+            return true
+
+        this.received[packet.id] = Date.now()
         return false
     }
+}
 
-    _emit(signal) {
-        this.channels.forEach((channel, i) =>
-            channel.isOpen()
-                ? channel.transmit(signal)
-                : delete this.channels[i])
+class Packet {
+    constructor(id, content) {
+        this.id = id
+        this.content = content
     }
 }
 
 class Channel {
 
-    transmit(signal) {
-        throw new Error('Not implemented')
-    }
+    transmit(packet) { }
 
     isOpen() {
         return false
     }
 }
 
-class StringSignal extends Signal {
-    constructor(string) {
-        super()
-        this.string = string
-    }
-
-    payload() {
-        return this.string
-    }
-
-    serialized() {
-        return this.payload()
-    }
-}
-
 module.exports = {
-    MeshZell,
+    MeshDish,
+    Packet,
     Channel,
-    StringSignal
-}
-
-class NullSignal extends Signal {
-    payload() {
-        return null
-    }
-}
-
-class MeshSignal extends Signal {
-    constructor(id, payload) {
-        super()
-        this.id = id
-        this._payload = payload
-    }
-
-    payload() {
-        return this._payload
-    }
-}
-
-class JsonMeshSignal extends MeshSignal {
-
-    static with(payload) {
-        return new JsonMeshSignal(uuid(), payload)
-    }
-
-    static from(signal) {
-        const parsed = JSON.parse(signal.payload())
-        return new JsonMeshSignal(parsed.id, parsed.payload)
-    }
-
-    serialized() {
-        return JSON.stringify({ id: this.id, payload: this.payload() })
-    }
 }

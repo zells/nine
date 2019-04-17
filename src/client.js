@@ -1,38 +1,23 @@
-const { Zell, Signal } = require('./model')
-const { MeshZell, Channel, StringSignal } = require('./mesh')
-const { Portal, portals } = require('./portals')
+const uuid = require('uuid/v4')
+const { Zell } = require('./model')
+const { MeshDish, Packet } = require('./mesh')
+const { WebsocketChannel } = require('./server')
+const { portals } = require('./portals')
 
-class WebsocketClient {
-    constructor(socket, mesh) {
-        socket.on('connect', () => mesh.open(new WebsocketChannel(socket)))
-        socket.on('signal', string => mesh.receive(new StringSignal(string)))
-    }
-}
-
-class WebsocketChannel extends Channel {
+class WebsocketClientDish extends MeshDish {
     constructor(socket) {
         super()
-        this.open = true
-        this.socket = socket
 
-        socket.on('disconnect', () => this.open = false)
+        socket.on('connect', () => this.open(new WebsocketChannel(socket, this)))
     }
 
-    transmit(signal) {
-        socket.emit('signal', signal.serialized())
-    }
-
-    isOpen() {
-        return this.open
+    pack(stream) {
+        return new Packet(uuid(), stream)
     }
 }
 
 window.z = {
     Zell,
-    Signal,
-    MeshZell,
-    Channel,
-    Portal,
     portals,
-    WebsocketClient
+    WebsocketClientDish
 }
