@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "scripts": {
         "build": "npm run build-bundle",
-        "build-bundle": "browserify src/client.js -o static/bundle.js",
+        "build-bundle": "browserify src/bundle.js -o static/bundle.js",
         "start": "node main.js",
         "postinstall": "sh install-lib.sh && npm run build"
     },

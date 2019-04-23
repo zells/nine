@@ -1,7 +1,7 @@
 const path = require('path')
 const express = require('express')
 const socket = require('socket.io')
-const { WebsocketServerDish } = require('./src/server')
+const { WebsocketServerNode } = require('./src/websocket')
 
 const port = process.env.PORT || 4242
 const staticDir = path.join(__dirname, 'static')
@@ -13,4 +13,4 @@ app.use(express.static(staticDir));
 const server = app.listen(port, () =>
     console.log(`Listening on http://localhost:${port}`))
 
-new WebsocketServerDish(socket(server))
+new WebsocketServerNode(socket(server))

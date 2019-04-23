@@ -1,6 +1,7 @@
+const uuid = require('uuid/v4')
 const { Dish } = require('./model')
 
-class MeshDish extends Dish {
+class Node extends Dish {
     constructor() {
         super()
 
@@ -13,26 +14,27 @@ class MeshDish extends Dish {
         return channel
     }
 
-    emitted(stream, zell) {
-        super.emitted(stream, zell)
-        this.send(this.pack(stream))
+    emitted(signal, origin) {
+        super.emitted(signal, origin)
+        this.send(this.pack(signal))
     }
 
-    pack(stream) {
-        return new Packet(null, stream)
+    pack(signal) {
+        return new Packet(uuid(), signal)
     }
 
     send(packet) {
         this.received[packet.id] = Date.now()
         this.channels = this.channels.filter(channel => channel.isOpen())
-        this.channels.forEach(channel => channel.transmit(packet))
+        this.channels.forEach(channel => channel.deliver(packet))
     }
 
     receive(packet) {
+        console.log('receive', { packet })
         if (this._alreadyReceived(packet))
             return
 
-        this.dispense(packet.content)
+        this.disseminate(packet.content)
         this.send(packet)
     }
 
@@ -54,15 +56,21 @@ class Packet {
 
 class Channel {
 
-    transmit(packet) { }
+    deliver(packet) {
+        throw new Error('Not implemented')
+    }
+
+    close() {
+        this.closed = true
+    }
 
     isOpen() {
-        return false
+        return !this.closed
     }
 }
 
 module.exports = {
-    MeshDish,
+    Node,
     Packet,
     Channel,
 }

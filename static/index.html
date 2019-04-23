@@ -30,7 +30,7 @@
     <script>
         const socket = io(location.protocol + '//' + window.location.host);
 
-        const dish = new z.WebsocketClientDish(socket)
+        const dish = new z.WebsocketClientNode(socket)
 
         const $creator = $('#portal-creator')
         const $selection = $creator.find('select')

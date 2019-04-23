@@ -1,78 +1,63 @@
 class Zell {
 
-    consume(stream) {
+    absorb(signal) {
+        throw new Error('Not implemented')
+    }
+
+    emit(signal) {
+        if (this.emitter) this.emitter(signal)
     }
 
     emitWith(emitter) {
         this.emitter = emitter
     }
 
-    emit(stream) {
-        if (this.emitter) this.emitter(stream)
-    }
-
     die() {
         this.dead = true
     }
-}
 
-class Stream {
-
-    all() {
-        return new Buffer(0)
-    }
-
-    toString() {
-        return this.all().toString()
-    }
-
-    next() {
-        return 0
-    }
-
-    hasNext() {
-        return false
+    isAlive() {
+        return !this.dead
     }
 }
 
 class Dish {
     constructor() {
-        this.zells = []
+        this.culture = []
     }
 
     put(zell) {
-        this.zells.push(zell)
-        zell.emitWith(stream => this.emitted(stream, zell))
+        this.culture.push(zell)
+        zell.emitWith(signal => this.emitted(signal, zell))
         return zell
     }
 
     remove(zell) {
-        zell.emitWith(() => null)
-        this.zells = this.zells.filter(z => z != zell)
+        zell.emitWith(null)
+        this.culture = this.culture.filter(z => z != zell)
     }
 
-    emitted(stream, zell) {
-        this.dispense(stream, zell)
+    emitted(signal, origin) {
+        this.disseminate(signal, origin)
     }
 
-    dispense(stream, origin) {
-        const consumeSafely = zell => {
+    disseminate(signal, origin) {
+        const absorbSafely = zell => {
             try {
-                zell.consume(stream)
+                zell.absorb(signal)
             } catch (err) {
                 console.error(err)
             }
         }
 
-        this.zells = this.zells.filter(zell => !zell.dead)
-        this.zells
+        this.culture = this.culture.filter(zell => zell.isAlive())
+        this.culture
             .filter(zell => zell != origin)
-            .forEach(consumeSafely)
+            .forEach(absorbSafely)
     }
 }
 
 module.exports = {
     Zell,
-    Stream,
     Dish
 }

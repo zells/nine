@@ -55,13 +55,13 @@ class Receiver extends Portal {
             <div class="log" style="height: 200px; overflow: auto"></div>`
     }
 
-    consume(stream) {
-        super.consume(stream)
+    absorb(signal) {
+        super.absorb(signal)
 
         this.$log.append(`
             <p style="padding-bottom: 0.5em">
                 <small class="has-text-grey-light">${new Date().toISOString()}</small>
-                ${stream.toString()}
+                ${signal.toString()}
             </p>`)
         this.$log.scrollTop(this.$log.prop("scrollHeight"))
     }
@@ -124,7 +124,8 @@ class ChatRoom extends Portal {
                 sender: $sender[0].value,
                 message: $message[0].value
             }, null, 1))
-            $message.focus().select()
+            $message[0].value = ''
+            $message.focus()
         }
 
         this.$element.find('button').on('click', send)
@@ -180,17 +181,17 @@ class ChatRoom extends Portal {
             </div>`
     }
 
-    consume(stream) {
-        super.consume(stream)
+    absorb(signal) {
+        super.absorb(signal)
 
-        if (stream.toString() == 'rooms?' && this.$room[0] && this.$room[0].value)
+        if (signal.toString() == 'rooms?' && this.$room[0] && this.$room[0].value)
             return this.emit(JSON.stringify({
                 room: this.$room[0].value
             }))
 
         try {
 
-            const said = JSON.parse(stream.toString())
+            const said = JSON.parse(signal.toString())
 
             if (said.room && !this.rooms[said.room]) {
                 this.rooms[said.room] = true

@@ -1,30 +1,34 @@
-const uuid = require('uuid/v4')
-const { MeshDish, Channel, Packet } = require('./mesh')
+const { Node, Channel, Packet } = require('./mesh')
 
-class WebsocketServerDish extends MeshDish {
+class WebsocketServerNode extends Node {
     constructor(socket) {
         super()
 
         socket.on('connection', client => this.open(new WebsocketChannel(client, this)))
     }
+}
 
-    pack(stream) {
-        return new Packet(uuid(), stream)
+class WebsocketClientNode extends Node {
+    constructor(socket) {
+        super()
+
+        socket.on('connect', () => this.open(new WebsocketChannel(socket, this)))
     }
 }
 
 class WebsocketChannel extends Channel {
-    constructor(socket, dish) {
+    constructor(socket, node) {
         super()
+        console.log('WebsocketChannel', socket.id)
 
         this.socket = socket
         this.open = true
 
-        socket.on('signal', data => dish.receive(this._inflate(data)))
-        socket.on('disconnect', () => this.open = false)
+        socket.on('signal', data => node.receive(this._inflate(data)))
+        socket.on('disconnect', () => this.close())
     }
 
-    transmit(packet) {
+    deliver(packet) {
         this.socket.emit('signal', this._deflate(packet))
     }
 
@@ -46,6 +50,7 @@ class WebsocketChannel extends Channel {
 }
 
 module.exports = {
-    WebsocketServerDish,
+    WebsocketServerNode,
+    WebsocketClientNode,
     WebsocketChannel
 }
