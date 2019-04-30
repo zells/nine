@@ -56,8 +56,6 @@ class Receiver extends Portal {
     }
 
     absorb(signal) {
-        super.absorb(signal)
-
         this.$log.append(`
             <p style="padding-bottom: 0.5em">
                 <small class="has-text-grey-light">${new Date().toISOString()}</small>
@@ -182,8 +180,6 @@ class ChatRoom extends Portal {
     }
 
     absorb(signal) {
-        super.absorb(signal)
-
         if (signal.toString() == 'rooms?' && this.$room[0] && this.$room[0].value)
             return this.emit(JSON.stringify({
                 room: this.$room[0].value
