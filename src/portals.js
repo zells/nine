@@ -110,13 +110,6 @@ class ChatRoom extends Portal {
         const $message = this.$element.find('.msg')
 
         const send = () => {
-            this.$log.append(`
-                <p style="padding-bottom: 0.5em">
-                    <small class="has-text-grey" title="${new Date().toISOString()}">${$sender[0].value}</small>
-                    <span class="has-text-grey-light">${$message[0].value}</span>
-                </p>`)
-            this.$log.scrollTop(this.$log.prop("scrollHeight"))
-
             this.emit(JSON.stringify({
                 room: this.$room[0].value,
                 sender: $sender[0].value,
@@ -137,8 +130,8 @@ class ChatRoom extends Portal {
         })
     }
 
-    emitWith(emitter) {
-        super.emitWith(emitter)
+    putInto(dish) {
+        super.putInto(dish)
         this.emit('rooms?')
     }
 
@@ -185,28 +178,29 @@ class ChatRoom extends Portal {
                 room: this.$room[0].value
             }))
 
-        try {
 
-            const said = JSON.parse(signal.toString())
+        const said = JSON.parse(signal.toString())
 
-            if (said.room && !this.rooms[said.room]) {
-                this.rooms[said.room] = true
-                this.updateRooms()
-            }
-
-            if (!said.message) return
-
-            if (this.$room[0] && said.room != this.$room[0].value) return
-
-            this.$log.append(`
-                <p style="padding-bottom: 0.5em">
-                    <small class="has-text-grey-light" title="${new Date().toISOString()}">${said.sender}</small>
-                    ${said.message}
-                </p>`)
-            this.$log.scrollTop(this.$log.prop("scrollHeight"))
-
-        } catch {
+        if (said.room && !this.rooms[said.room]) {
+            this.rooms[said.room] = true
+            this.updateRooms()
         }
+
+        if (!said.message) return
+
+        if (this.$room[0] && said.room != this.$room[0].value) return
+
+        let classes = (said.sender == this.$element.find('.sender')[0].value)
+            ? { sender: 'has-text-grey', message: 'has-text-grey-light' }
+            : { sender: 'has-text-grey-light', message: '' }
+
+        this.$log.append(`
+            <p style="padding-bottom: 0.5em">
+                <small class="${classes.sender}" title="${new Date().toISOString()}">${said.sender}</small>
+                <span class="${classes.message}">${said.message}</span>
+            </p>`)
+
+        this.$log.scrollTop(this.$log.prop("scrollHeight"))
     }
 }
 

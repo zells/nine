@@ -1,23 +1,22 @@
 class Zell {
 
     absorb(signal) {
-        throw new Error('Not implemented')
+    }
+
+    putInto(dish) {
+        if (this.dish === dish) return
+        if (this.dish) this.dish.remove(this)
+
+        this.dish = dish
+        if (dish) dish.put(this)
     }
 
     emit(signal) {
-        if (this.emitter) this.emitter(signal)
-    }
-
-    emitWith(emitter) {
-        this.emitter = emitter
+        if (this.dish) this.dish.transmit(signal)
     }
 
     die() {
-        this.dead = true
-    }
-
-    isAlive() {
-        return !this.dead
+        if (this.dish) this.dish.remove(this)
     }
 }
 
@@ -27,33 +26,30 @@ class Dish {
     }
 
     put(zell) {
+        if (this.culture.indexOf(zell) > -1) return
+
         this.culture.push(zell)
-        zell.emitWith(signal => this.emitted(signal, zell))
+        zell.putInto(this)
         return zell
     }
 
     remove(zell) {
-        zell.emitWith(null)
+        zell.putInto(null)
         this.culture = this.culture.filter(z => z != zell)
     }
 
-    emitted(signal, origin) {
-        this.disseminate(signal, origin)
+    transmit(signal) {
+        this.disseminate(signal)
     }
 
-    disseminate(signal, origin) {
-        const absorbSafely = zell => {
+    disseminate(signal) {
+        this.culture.forEach(zell => {
             try {
                 zell.absorb(signal)
             } catch (err) {
                 console.error(err)
             }
-        }
-
-        this.culture = this.culture.filter(zell => zell.isAlive())
-        this.culture
-            .filter(zell => zell != origin)
-            .forEach(absorbSafely)
+        })
     }
 }
 

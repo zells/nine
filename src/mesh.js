@@ -14,8 +14,8 @@ class Node extends Dish {
         return channel
     }
 
-    emitted(signal, origin) {
-        super.emitted(signal, origin)
+    transmit(signal) {
+        super.transmit(signal)
         this.send(this.pack(signal))
     }
 
