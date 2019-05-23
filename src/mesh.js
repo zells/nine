@@ -16,16 +16,12 @@ class Node extends Dish {
 
     transmit(signal) {
         super.transmit(signal)
-        this.send(this.pack(signal))
-    }
-
-    pack(signal) {
-        return new Packet(uuid(), signal)
+        this.send(Packet.pack(signal))
     }
 
     send(packet) {
         this.received[packet.id] = Date.now()
-        this.channels = this.channels.filter(channel => channel.isOpen())
+        this._purgeClosedChannels()
         this.channels.forEach(channel => channel.deliver(packet))
     }
 
@@ -45,12 +41,20 @@ class Node extends Dish {
         this.received[packet.id] = Date.now()
         return false
     }
+
+    _purgeClosedChannels() {
+        this.channels = this.channels.filter(channel => channel.isOpen())
+    }
 }
 
 class Packet {
     constructor(id, content) {
         this.id = id
         this.content = content
+    }
+
+    static pack(content) {
+        return new Packet(uuid(), content)
     }
 }
 

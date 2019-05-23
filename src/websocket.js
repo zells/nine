@@ -22,18 +22,15 @@ class WebsocketChannel extends Channel {
         console.log('WebsocketChannel', socket.id)
 
         this.socket = socket
-        this.open = true
 
         socket.on('signal', data => node.receive(this._inflate(data)))
         socket.on('disconnect', () => this.close())
     }
 
     deliver(packet) {
+        if (!this.isOpen()) return
+        
         this.socket.emit('signal', this._deflate(packet))
-    }
-
-    isOpen() {
-        return this.open
     }
 
     _inflate(data) {
