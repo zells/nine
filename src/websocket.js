@@ -4,7 +4,7 @@ const { Node, Link, Packet } = require('./mesh')
 class WebsocketNode extends Node {
 	
 	connectTo(socket) {
-		this.attach(new WebsocketLink(socket, this)
+		this.attach(new WebsocketLink(socket, this))
 	}
 
     pack(signal) {
@@ -39,17 +39,13 @@ class WebsocketLink extends Link {
     }
 
     transport(packet) {
-        if (!this.isBorken()) this.socket.emit('signal', this._deflate(packet))
+        if (this.isBroken()) return
+        
+        this.socket.emit('signal', this._deflate(packet))
     }
 
     isBroken() {
         return this.broken
-    }
-
-    deliver(packet) {
-        if (!this.isOpen()) return
-        
-        this.socket.emit('signal', this._deflate(packet))
     }
 
     _inflate(data) {

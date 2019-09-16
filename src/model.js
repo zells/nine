@@ -20,6 +20,7 @@ class Medium {
 
 class Dish extends Medium {
     constructor() {
+        super()
         this.culture = []
     }
 
