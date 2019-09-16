@@ -1,17 +1,16 @@
-const uuid = require('uuid/v4')
 const { Dish } = require('./model')
 
 class Node extends Dish {
     constructor() {
         super()
 
-        this.channels = []
+        this.links = []
         this.received = {}
     }
 
-    open(channel) {
-        this.channels.push(channel)
-        return channel
+    attach(link) {
+        this.links.push(link)
+        return link
     }
 
     transmit(signal) {
@@ -20,27 +19,29 @@ class Node extends Dish {
     }
 
     pack(signal) {
-        return new Packet(uuid(), signal)
+        return new Packet(Math.random(), signal)
     }
 
     send(packet) {
         this.received[packet.id] = Date.now()
-        this.channels = this.channels.filter(channel => channel.isOpen())
-        this.channels.forEach(channel => channel.deliver(packet))
+        this.links = this.links.filter(link => {
+			if (link.isBroken()) return false
+			
+			link.transport(packet)
+			return true
+		})
     }
 
     receive(packet) {
         console.log('receive', { packet })
-        if (this._alreadyReceived(packet))
-            return
+        if (this._alreadyReceived(packet)) return
 
         this.disseminate(packet.content)
         this.send(packet)
     }
 
     _alreadyReceived(packet) {
-        if (packet.id in this.received)
-            return true
+        if (packet.id in this.received) return true
 
         this.received[packet.id] = Date.now()
         return false
@@ -54,23 +55,18 @@ class Packet {
     }
 }
 
-class Channel {
+class Link {
 
-    deliver(packet) {
-        throw new Error('Not implemented')
+    transport(packet) {
     }
 
-    close() {
-        this.closed = true
-    }
-
-    isOpen() {
-        return !this.closed
+    isBroken() {
+        return true
     }
 }
 
 module.exports = {
     Node,
     Packet,
-    Channel,
+    Link,
 }

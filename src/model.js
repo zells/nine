@@ -3,24 +3,22 @@ class Zell {
     absorb(signal) {
     }
 
-    putInto(dish) {
-        if (this.dish === dish) return
-        if (this.dish) this.dish.remove(this)
-
-        this.dish = dish
-        if (dish) dish.put(this)
+    wasPutInto(medium) {
+        this.medium = medium
     }
 
     emit(signal) {
-        if (this.dish) this.dish.transmit(signal)
-    }
-
-    die() {
-        if (this.dish) this.dish.remove(this)
+        if (this.medium) this.medium.transmit(signal)
     }
 }
 
-class Dish {
+class Medium {
+	
+	transmit(signal) {
+	}
+}
+
+class Dish extends Medium {
     constructor() {
         this.culture = []
     }
@@ -29,14 +27,15 @@ class Dish {
         if (this.culture.indexOf(zell) > -1) return
 
         this.culture.push(zell)
-        zell.putInto(this)
+        zell.wasPutInto(this)
+		
         return zell
     }
-
-    remove(zell) {
-        zell.putInto(null)
-        this.culture = this.culture.filter(z => z != zell)
-    }
+	
+	remove(zell) {
+		zell.wasPutInto(null)
+		this.culture = this.culture.filter(z => zell === z)
+	}
 
     transmit(signal) {
         this.disseminate(signal)
@@ -44,7 +43,7 @@ class Dish {
 
     disseminate(signal) {
         this.culture.forEach(zell => {
-            try {
+			try {
                 zell.absorb(signal)
             } catch (err) {
                 console.error(err)

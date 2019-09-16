@@ -1,23 +1,20 @@
 const { Zell } = require('./model')
 
 class Portal extends Zell {
-    constructor(container) {
-        super(container)
+    constructor(node, container) {
+        super()
+		this.node = node
 
         this.$element = $(this.render())
         this.$element.css('position', 'absolute')
-        this.$element.draggable({ handle: 'header', stack: '.portal' });
-        this.$element.find('.delete').on('click', this.die.bind(this))
+        this.$element.draggable({ handle: 'header', stack: '.portal' })
+        this.$element.find('.delete').on('click', () => this.close())
 
         container.append(this.$element)
     }
 
-    element() {
-        return this.$element
-    }
-
-    die() {
-        super.die()
+    close() {
+        this.node.remove(this)
         this.$element.remove()
     }
 
@@ -39,13 +36,13 @@ class Portal extends Zell {
     }
 
     renderBody() {
-        throw new Error('Not implemented')
+        return '<strong>Empty Portal</strong>'
     }
 }
 
 class Receiver extends Portal {
-    constructor(container) {
-        super(container)
+    constructor(node, container) {
+        super(node, container)
 
         this.$log = this.$element.find('.log')
     }
@@ -66,8 +63,8 @@ class Receiver extends Portal {
 }
 
 class Sender extends Portal {
-    constructor(container) {
-        super(container)
+    constructor(node, container) {
+        super(node, container)
 
         const $input = this.$element.find('input')
         const send = () => {
@@ -96,8 +93,8 @@ class Sender extends Portal {
 }
 
 class ChatRoom extends Portal {
-    constructor(container) {
-        super(container)
+    constructor(node, container) {
+        super(node, container)
 
         this.rooms = {}
 
@@ -130,8 +127,8 @@ class ChatRoom extends Portal {
         })
     }
 
-    putInto(dish) {
-        super.putInto(dish)
+    wasPutInto(medium) {
+        super.wasPutInto(medium)
         this.emit('rooms?')
     }
 
@@ -190,7 +187,7 @@ class ChatRoom extends Portal {
 
         if (this.$room[0] && said.room != this.$room[0].value) return
 
-        let classes = (said.sender == this.$element.find('.sender')[0].value)
+        const classes = (said.sender == this.$element.find('.sender')[0].value)
             ? { sender: 'has-text-grey', message: 'has-text-grey-light' }
             : { sender: 'has-text-grey-light', message: '' }
 

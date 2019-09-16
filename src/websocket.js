@@ -1,39 +1,49 @@
-const { Node, Channel, Packet } = require('./mesh')
+const uuid = require('uuid/v4')
+const { Node, Link, Packet } = require('./mesh')
 
-class WebsocketServerNode extends Node {
-    constructor(socket) {
-        super()
+class WebsocketNode extends Node {
+	
+	connectTo(socket) {
+		this.attach(new WebsocketLink(socket, this)
+	}
 
-        socket.on('connection', client => this.open(new WebsocketChannel(client, this)))
+    pack(signal) {
+        return new Packet(uuid(), signal)
     }
 }
 
-class WebsocketClientNode extends Node {
+class WebsocketServerNode extends WebsocketNode {
     constructor(socket) {
         super()
-
-        socket.on('connect', () => this.open(new WebsocketChannel(socket, this)))
+        socket.on('connection', client => this.connectTo(client))
     }
 }
 
-class WebsocketChannel extends Channel {
+class WebsocketClientNode extends WebsocketNode {
+    constructor(socket) {
+        super()
+        socket.on('connect', () => this.connectTo(socket))
+    }
+}
+
+class WebsocketLink extends Link {
     constructor(socket, node) {
         super()
-        console.log('WebsocketChannel', socket.id)
+        console.log('WebsocketLink', socket.id)
 
         this.socket = socket
-        this.open = true
+        this.broken = false
 
         socket.on('signal', data => node.receive(this._inflate(data)))
-        socket.on('disconnect', () => this.close())
+        socket.on('disconnect', () => this.broken = true)
     }
 
-    deliver(packet) {
+    transport(packet) {
         this.socket.emit('signal', this._deflate(packet))
     }
 
-    isOpen() {
-        return this.open
+    isBroken() {
+        return this.broken
     }
 
     _inflate(data) {
@@ -51,6 +61,5 @@ class WebsocketChannel extends Channel {
 
 module.exports = {
     WebsocketServerNode,
-    WebsocketClientNode,
-    WebsocketChannel
+    WebsocketClientNode
 }
