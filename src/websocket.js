@@ -39,11 +39,17 @@ class WebsocketLink extends Link {
     }
 
     transport(packet) {
-        this.socket.emit('signal', this._deflate(packet))
+        if (!this.isBorken()) this.socket.emit('signal', this._deflate(packet))
     }
 
     isBroken() {
         return this.broken
+    }
+
+    deliver(packet) {
+        if (!this.isOpen()) return
+        
+        this.socket.emit('signal', this._deflate(packet))
     }
 
     _inflate(data) {

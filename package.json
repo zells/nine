@@ -5,6 +5,7 @@
         "build": "npm run build-bundle",
         "build-bundle": "browserify src/bundle.js -o static/bundle.js",
         "start": "node main.js",
+        "start-fresh": "npm run build && npm start",
         "postinstall": "sh install-lib.sh && npm run build"
     },
     "devDependencies": {
