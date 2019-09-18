@@ -1,9 +1,9 @@
 const { Node } = require('./mesh')
-const { portals } = require('./portals')
+const { probes } = require('./probes')
 const websocket = require('./websocket')
 
 window.z = {
     Node,
-    portals,
+    probes,
     websocket
 }

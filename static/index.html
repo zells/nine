@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <div id="portal-creator">
+    <div id="probe-creator">
         <div class="select">
             <select>
             </select>
@@ -33,14 +33,14 @@
         z.websocket.watchClientConnections(socket, bench)
 
 		const $body = $('body')
-        const $creator = $('#portal-creator')
+        const $creator = $('#probe-creator')
         const $selection = $creator.find('select')
 
         $creator.find('button').on('click', () =>
-			bench.put(new z.portals[$selection[0].value](bench, $body)))
+			bench.put(new z.probes[$selection[0].value](bench, $body)))
 
-        Object.keys(z.portals).forEach(portal =>
-            $selection.append(`<option value="${portal}">${portal}</option>`))
+        Object.keys(z.probes).forEach(probe =>
+            $selection.append(`<option value="${probe}">${probe}</option>`))
     </script>
 </body>
 

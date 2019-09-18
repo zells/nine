@@ -1,13 +1,13 @@
 const { Zell } = require('./model')
 
-class Portal extends Zell {
+class Probe extends Zell {
     constructor(node, container) {
         super()
 		this.node = node
 
         this.$element = $(this.render())
         this.$element.css('position', 'absolute')
-        this.$element.draggable({ handle: 'header', stack: '.portal' })
+        this.$element.draggable({ handle: 'header', stack: '.probe' })
         this.$element.find('.delete').on('click', () => this.close())
 
         container.append(this.$element)
@@ -20,7 +20,7 @@ class Portal extends Zell {
 
     render() {
         return `
-            <div class="portal card">
+            <div class="probe card">
                 <header class="card-header">
                     <p class="card-header-title">
                         ${this.constructor.name}
@@ -36,11 +36,11 @@ class Portal extends Zell {
     }
 
     renderBody() {
-        return '<strong>Empty Portal</strong>'
+        return '<strong>Empty Probe</strong>'
     }
 }
 
-class Receiver extends Portal {
+class Receiver extends Probe {
     constructor(node, container) {
         super(node, container)
 
@@ -62,7 +62,7 @@ class Receiver extends Portal {
     }
 }
 
-class Sender extends Portal {
+class Sender extends Probe {
     constructor(node, container) {
         super(node, container)
 
@@ -92,7 +92,7 @@ class Sender extends Portal {
     }
 }
 
-class ChatRoom extends Portal {
+class ChatRoom extends Probe {
     constructor(node, container) {
         super(node, container)
 
@@ -211,8 +211,8 @@ class ChatRoom extends Portal {
 }
 
 module.exports = {
-    Portal,
-    portals: {
+    Probe,
+    probes: {
         Receiver,
         Sender,
         ChatRoom

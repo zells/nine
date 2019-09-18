@@ -1,8 +1,8 @@
-.portal {
+.probe {
     width: 300px;
 }
 
-.portal .card-content {
+.probe .card-content {
     padding: 0;
 }
 
@@ -16,7 +16,7 @@ input {
 }
 
 @media (max-width: 640px) { 
-    .portal {
+    .probe {
         position: static !important;
         width: 100% !important;
 
