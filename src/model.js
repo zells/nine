@@ -35,7 +35,7 @@ class Dish extends Medium {
 	
 	remove(zell) {
 		zell.wasPutInto(null)
-		this.culture = this.culture.filter(z => zell === z)
+		this.culture = this.culture.filter(z => zell !== z)
 	}
 
     transmit(signal) {
@@ -47,6 +47,7 @@ class Dish extends Medium {
 			try {
                 zell.absorb(signal)
             } catch (err) {
+                console.log('Error while absorbing', signal)
                 console.error(err)
             }
         })

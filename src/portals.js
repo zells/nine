@@ -170,13 +170,22 @@ class ChatRoom extends Portal {
     }
 
     absorb(signal) {
-        if (signal.toString() == 'rooms?' && this.$room[0] && this.$room[0].value)
-            return this.emit(JSON.stringify({
-                room: this.$room[0].value
-            }))
+        if (signal.toString() == 'rooms?') {
+            if (this.$room[0] && this.$room[0].value) {
+                this.emit(JSON.stringify({
+                    room: this.$room[0].value
+                }))
+            }
+            return
+        }
 
-
-        const said = JSON.parse(signal.toString())
+        let said
+        try {
+            said = JSON.parse(signal.toString())
+        } catch (ignored) {
+            // Not a ChatRoom message
+            return
+        }
 
         if (said.room && !this.rooms[said.room]) {
             this.rooms[said.room] = true

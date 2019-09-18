@@ -1,32 +1,8 @@
-const uuid = require('uuid/v4')
-const { Node, Link, Packet } = require('./mesh')
 
-class WebsocketNode extends Node {
-	
-	connectTo(socket) {
-		this.attach(new WebsocketLink(socket, this))
-	}
-
-    pack(signal) {
-        return new Packet(uuid(), signal)
-    }
-}
-
-class WebsocketServerNode extends WebsocketNode {
-    constructor(socket) {
-        super()
-        socket.on('connection', client => this.connectTo(client))
-    }
-}
-
-class WebsocketClientNode extends WebsocketNode {
-    constructor(socket) {
-        super()
-        socket.on('connect', () => this.connectTo(socket))
-    }
-}
+const { Link, Packet } = require('./mesh')
 
 class WebsocketLink extends Link {
+
     constructor(socket, node) {
         super()
         console.log('WebsocketLink', socket.id)
@@ -40,7 +16,6 @@ class WebsocketLink extends Link {
 
     transport(packet) {
         if (this.isBroken()) return
-        
         this.socket.emit('signal', this._deflate(packet))
     }
 
@@ -61,7 +36,15 @@ class WebsocketLink extends Link {
     }
 }
 
+function watchServerConnections(socket, node) {
+    socket.on('connection', client => node.attach(new WebsocketLink(client, node)))
+}
+
+function watchClientConnections(socket, node) {
+    socket.on('connect', () => node.attach(new WebsocketLink(socket, node)))
+}
+
 module.exports = {
-    WebsocketServerNode,
-    WebsocketClientNode
+    watchServerConnections,
+    watchClientConnections
 }

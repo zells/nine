@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>zells</title>
+    <title>zells Web Lab</title>
     <link rel="stylesheet" href="lib/jquery-ui.css">
     <link rel="stylesheet" href="lib/bulma.css">
     <link rel="stylesheet" href="lib/bulma-superhero.css">
@@ -28,16 +28,16 @@
     <script src="/bundle.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io(location.protocol + '//' + window.location.host);
-
-        const node = new z.WebsocketClientNode(socket)
+        const socket = io(location.protocol + '//' + window.location.host)
+        const bench = new z.Node()
+        z.websocket.watchClientConnections(socket, bench)
 
 		const $body = $('body')
         const $creator = $('#portal-creator')
         const $selection = $creator.find('select')
 
         $creator.find('button').on('click', () =>
-			node.put(new z.portals[$selection[0].value](node, $body)))
+			bench.put(new z.portals[$selection[0].value](bench, $body)))
 
         Object.keys(z.portals).forEach(portal =>
             $selection.append(`<option value="${portal}">${portal}</option>`))

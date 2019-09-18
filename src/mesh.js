@@ -1,3 +1,4 @@
+const uuid = require('uuid/v4')
 const { Dish } = require('./model')
 
 class Node extends Dish {
@@ -10,26 +11,21 @@ class Node extends Dish {
 
     attach(link) {
         this.links.push(link)
-        return link
     }
 
     transmit(signal) {
         super.transmit(signal)
-        this.send(this.pack(signal))
-    }
-
-    pack(signal) {
-        return new Packet(Math.random(), signal)
+        this.send(new Packet(uuid(), signal))
     }
 
     send(packet) {
         this.received[packet.id] = Date.now()
-        this.links = this.links.filter(link => {
-			if (link.isBroken()) return false
-			
-			link.transport(packet)
-			return true
-		})
+        this.purgeBrokenLinks()
+        this.links.forEach(link => link.transport(packet))
+    }
+
+    purgeBrokenLinks() {
+        this.links = this.links.filter(link => !link.isBroken())
     }
 
     receive(packet) {
